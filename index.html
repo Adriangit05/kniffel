@@ -56,6 +56,12 @@
   /* Status */
   .status { text-align: center; font-size: 0.9em; color: #888; margin-top: 8px; min-height: 1.2em; }
 
+  /* Endscreen Bewertung */
+  .end-rating { margin: 15px 0; text-align: center; }
+  .end-stars { font-size: 2em; margin: 8px 0; }
+  .end-comment { font-size: 1.1em; color: #555; }
+  .end-rank { font-size: 0.95em; color: #888; margin-top: 5px; }
+
   /* Endscreen */
   #end { justify-content: center; min-height: 100vh; }
   .result { font-size: 1.2em; margin: 5px 0; }
@@ -121,6 +127,7 @@ function sndRoll() {
 }
 function sndKeep() { playTone(880, 0.1, 'sine', 0.1); }
 function sndScore() { playTone(523, 0.12, 'sine', 0.15); setTimeout(() => playTone(659, 0.12, 'sine', 0.15), 100); setTimeout(() => playTone(784, 0.15, 'sine', 0.15), 200); }
+
 function sndStart() { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.15, 'sine', 0.13), i*100)); }
 function sndEnd() { [784,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.25, 'triangle', 0.15), i*150)); }
 
@@ -209,6 +216,17 @@ function toggleKeep(i) {
   sndKeep();
   kept[i] = !kept[i];
   renderDice();
+}
+
+// Gesamtbewertung am Spielende (Max: 375)
+function rateTotal(gesamt) {
+  if (gesamt >= 300) return { stars: '⭐⭐⭐⭐⭐', comment: 'Legendär! Absolute Weltklasse! 🔥' };
+  if (gesamt >= 250) return { stars: '⭐⭐⭐⭐⭐', comment: 'Herausragend! Kniffel-Meister!' };
+  if (gesamt >= 200) return { stars: '⭐⭐⭐⭐', comment: 'Sehr stark gespielt!' };
+  if (gesamt >= 150) return { stars: '⭐⭐⭐', comment: 'Gutes Spiel, solide Leistung!' };
+  if (gesamt >= 100) return { stars: '⭐⭐', comment: 'Geht so – da ist noch Luft nach oben.' };
+  if (gesamt >= 50)  return { stars: '⭐', comment: 'Naja, das Glück war nicht auf deiner Seite.' };
+  return { stars: '💀', comment: 'Uff... nächstes Mal wird besser!' };
 }
 
 // Kategorie wählen
@@ -354,6 +372,12 @@ function showEnd() {
     d.className = 'result' + (i === 0 ? ' winner' : '');
     d.textContent = (i === 0 ? '👑 ' : `${i+1}. `) + `${r.name}: ${r.score} Punkte`;
     div.appendChild(d);
+
+    const rating = rateTotal(r.score);
+    const rd = document.createElement('div');
+    rd.className = 'end-rating';
+    rd.innerHTML = `<div class="end-stars">${rating.stars}</div><div class="end-comment">${rating.comment}</div>`;
+    div.appendChild(rd);
   });
 }
 
