@@ -81,6 +81,7 @@
   .scorecard td.preview:hover { background: #bbdefb; }
   .scorecard td.active-player { background: #e8f0fe; }
   .scorecard td.scored { color: #333; }
+  .scorecard td.last-scored { background: #e8f5e9; color: #2E7D32; font-weight: bold; }
 
   /* Status */
   .status { text-align: center; font-size: 0.9em; color: #888; margin-top: 8px; min-height: 1.2em; }
@@ -215,6 +216,7 @@ let numPlayers = 1, playerNames = [], scorecards = [];
 let currentPlayer = 0, round = 1, dice = [0,0,0,0,0], kept = [false,false,false,false,false], rolls = 0;
 let gameMode = 'local'; // 'local' oder 'online'
 let roomCode = null, myPlayerId = null, isHost = false;
+let lastScoredEntry = null; // { player: index, category: name }
 
 // Startmenü
 function initMenu() {
@@ -321,6 +323,7 @@ function chooseCategory(kat) {
   if (gameMode === 'online' && currentPlayer !== myPlayerId) return;
   sndScore();
   scorecards[currentPlayer][kat] = calcScore(dice, kat);
+  lastScoredEntry = { player: currentPlayer, category: kat };
 
   let nextPlayer = currentPlayer + 1;
   let nextRound = round;
@@ -427,7 +430,8 @@ function categoryRow(kat) {
   for (let si = 0; si < numPlayers; si++) {
     const sc = scorecards[si];
     if (kat in sc) {
-      html += `<td class="scored">${sc[kat]}</td>`;
+      const isLast = lastScoredEntry && lastScoredEntry.player === si && lastScoredEntry.category === kat;
+      html += `<td class="scored${isLast ? ' last-scored' : ''}">${sc[kat]}</td>`;
     } else if (si === currentPlayer && rolls > 0) {
       const preview = calcScore(dice, kat);
       html += `<td class="preview" onclick="chooseCategory('${kat}')">(${preview})</td>`;
@@ -613,19 +617,20 @@ function leaveLobby() {
 
 // Alte Räume aufräumen (älter als 1 Stunde)
 function cleanupOldRooms() {
+  if (!window.fbDb) { setTimeout(cleanupOldRooms, 1000); return; }
   const gamesRef = fbRef(fbDb, 'games');
   fbGet(gamesRef).then(snap => {
     if (!snap.exists()) return;
     const now = Date.now();
     snap.forEach(child => {
       const data = child.val();
-      if (data.createdAt && now - data.createdAt > 3600000) {
+      if (!data.createdAt || now - data.createdAt > 3600000) {
         fbRemove(fbRef(fbDb, `games/${child.key}`));
       }
     });
   });
 }
-setTimeout(cleanupOldRooms, 3000);
+setTimeout(cleanupOldRooms, 2000);
 
 // Init
 initMenu();
