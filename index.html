@@ -674,10 +674,20 @@ function leaveLobby() {
 
 let fbLeaderboardListener = null;
 
+// Wahrscheinlichkeit P(X >= score) per Normalverteilung
+function scoreProbability(score) {
+  const mean = 175, sd = 60;
+  const z = (score - mean) / sd;
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989422804 * Math.exp(-z * z / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return z > 0 ? p : 1 - p;
+}
+
 function renderLeaderboard(snap) {
   const table = document.getElementById('lbTable');
   if (!snap.exists()) {
-    table.innerHTML = '<tr><th>#</th><th>Name</th><th>Punkte</th><th>Datum</th></tr><tr><td colspan="4" style="text-align:center;color:#888;">Noch keine Einträge</td></tr>';
+    table.innerHTML = '<tr><th>#</th><th>Name</th><th>Punkte</th><th>Wahrsch.</th><th>Datum</th></tr><tr><td colspan="5" style="text-align:center;color:#888;">Noch keine Einträge</td></tr>';
     return;
   }
   const entries = [];
@@ -685,16 +695,18 @@ function renderLeaderboard(snap) {
   entries.sort((a, b) => b.score - a.score);
   const top = entries.slice(0, 50);
   const medals = ['🥇','🥈','🥉'];
-  let html = '<tr><th>#</th><th>Name</th><th>Punkte</th><th>Datum</th></tr>';
+  let html = '<tr><th>#</th><th>Name</th><th>Punkte</th><th>Wahrsch.</th><th>Datum</th></tr>';
   top.forEach((e, i) => {
-    html += `<tr><td>${medals[i] || (i+1)}</td><td>${e.name}</td><td>${e.score}</td><td>${e.date}</td></tr>`;
+    const prob = scoreProbability(e.score) * 100;
+    const probStr = prob < 0.1 ? prob.toFixed(2) + '%' : prob < 1 ? prob.toFixed(1) + '%' : prob.toFixed(0) + '%';
+    html += `<tr><td>${medals[i] || (i+1)}</td><td>${e.name}</td><td>${e.score}</td><td>${probStr}</td><td>${e.date}</td></tr>`;
   });
   table.innerHTML = html;
 }
 
 function showLeaderboard() {
   showScreen('leaderboard');
-  document.getElementById('lbTable').innerHTML = '<tr><th>#</th><th>Name</th><th>Punkte</th><th>Datum</th></tr><tr><td colspan="4" style="text-align:center;color:#888;">Laden...</td></tr>';
+  document.getElementById('lbTable').innerHTML = '<tr><th>#</th><th>Name</th><th>Punkte</th><th>Wahrsch.</th><th>Datum</th></tr><tr><td colspan="5" style="text-align:center;color:#888;">Laden...</td></tr>';
   if (!window.fbDb) { setTimeout(showLeaderboard, 500); return; }
   if (fbLeaderboardListener) fbLeaderboardListener();
   const lbRef = fbRef(fbDb, 'leaderboard');
