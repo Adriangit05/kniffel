@@ -115,6 +115,15 @@
   .btn-lobby:disabled { background: #aaa; }
   .btn-back { background: #888; color: white; border: none; padding: 10px 24px; font-size: 1em; border-radius: 10px; cursor: pointer; margin-top: 15px; }
 
+  /* Scorecard Popup */
+  .sc-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .sc-popup { background: white; border-radius: 16px; padding: 20px; max-width: 350px; width: 90%; max-height: 80vh; overflow-y: auto; }
+  .sc-popup h3 { text-align: center; margin-bottom: 10px; }
+  .sc-popup table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+  .sc-popup td { padding: 4px 8px; border-bottom: 1px solid #eee; }
+  .sc-popup td:last-child { text-align: right; font-weight: bold; }
+  .sc-popup .sc-close { display: block; margin: 12px auto 0; background: #888; color: white; border: none; padding: 8px 24px; border-radius: 8px; cursor: pointer; }
+
   /* Bestenliste */
   #leaderboard { justify-content: flex-start; min-height: 100vh; padding-top: 40px; }
   .lb-table { width: 100%; max-width: 400px; border-collapse: collapse; margin: 15px 0; font-size: 0.95em; }
@@ -537,7 +546,7 @@ function showEnd() {
       roomCode = null;
     }, 60000);
   }
-  const res = playerNames.map((n, i) => ({ name: n, score: getTotal(i).gesamt }));
+  const res = playerNames.map((n, i) => ({ name: n, score: getTotal(i).gesamt, scorecard: scorecards[i] }));
   res.sort((a, b) => b.score - a.score);
   // Scores in Bestenliste speichern (lokal immer, online nur Host)
   if (gameMode === 'local' || isHost) {
@@ -548,7 +557,8 @@ function showEnd() {
         const entry = {
           name: r.name,
           score: r.score,
-          date: new Date().toLocaleString('de-DE')
+          date: new Date().toLocaleString('de-DE'),
+          scorecard: r.scorecard || null
         };
         const newRef = fbRef(fbDb, 'leaderboard/' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
         fbSet(newRef, entry);
@@ -731,7 +741,8 @@ function renderLeaderboard(snap) {
   top.forEach((e, i) => {
     const prob = scoreProbability(e.score) * 100;
     const probStr = prob < 0.1 ? prob.toFixed(2) + '%' : prob < 1 ? prob.toFixed(1) + '%' : prob.toFixed(0) + '%';
-    html += `<tr><td>${medals[i] || (i+1)}</td><td>${e.name}</td><td>${e.score}</td><td>${probStr}</td><td>${e.date}</td></tr>`;
+    const scBtn = (i < 3 && e.scorecard) ? ` <span style="cursor:pointer" onclick='showScorecardPopup(${JSON.stringify(e)})'>📊</span>` : '';
+    html += `<tr><td>${medals[i] || (i+1)}</td><td>${e.name}${scBtn}</td><td>${e.score}</td><td>${probStr}</td><td>${e.date}</td></tr>`;
   });
   table.innerHTML = html;
 }
@@ -743,6 +754,22 @@ function showLeaderboard() {
   if (fbLeaderboardListener) fbLeaderboardListener();
   const lbRef = fbRef(fbDb, 'leaderboard');
   fbLeaderboardListener = fbOnValue(lbRef, renderLeaderboard);
+}
+
+function showScorecardPopup(entry) {
+  const sc = entry.scorecard;
+  if (!sc) return;
+  let html = `<div class="sc-overlay" onclick="if(event.target===this)this.remove()">`;
+  html += `<div class="sc-popup"><h3>📊 ${entry.name} – ${entry.score} Punkte</h3><table>`;
+  UPPER.forEach(k => { html += `<tr><td>${k}</td><td>${sc[k] != null ? sc[k] : '-'}</td></tr>`; });
+  let oben = 0;
+  UPPER.forEach(k => { if (sc[k] != null) oben += sc[k]; });
+  const bonus = oben >= 63 ? 35 : 0;
+  html += `<tr><td><b>Bonus</b></td><td><b>${oben}/63 ${bonus ? '+ 35' : ''}</b></td></tr>`;
+  LOWER.forEach(k => { html += `<tr><td>${k}</td><td>${sc[k] != null ? sc[k] : '-'}</td></tr>`; });
+  html += `<tr><td><b>GESAMT</b></td><td><b>${entry.score}</b></td></tr>`;
+  html += `</table><button class="sc-close" onclick="this.closest('.sc-overlay').remove()">Schließen</button></div></div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
 }
 
 // Alte Räume aufräumen (älter als 1 Stunde)
