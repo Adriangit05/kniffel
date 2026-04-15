@@ -513,7 +513,7 @@ function totalRow() {
   let html = '<tr class="total-row"><td>GESAMT</td>';
   for (let si = 0; si < numPlayers; si++) {
     const t = getTotal(si);
-    html += `<td><div style="text-align:center"><span style="color:#999;font-size:0.8em">${t.unten} + ${t.oben + t.bonus}</span><br>${t.gesamt}</div></td>`;
+    html += `<td style="position:relative"><span style="color:#999;position:absolute;right:calc(50% + 12px);white-space:nowrap">${t.unten} + ${t.oben + t.bonus} = </span>${t.gesamt}</td>`;
   }
   html += '</tr>';
   return html;
