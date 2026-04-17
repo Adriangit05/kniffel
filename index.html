@@ -411,6 +411,7 @@ function chooseCategory(kat) {
     currentPlayer = nextPlayer;
     round = Math.min(...scorecards.map(sc => Object.keys(sc).length)) + 1;
     if (isGameOver()) {
+      renderAll();
       showEnd();
     } else {
       newTurn();
@@ -768,6 +769,9 @@ function showScorecardPopup(entry) {
   const bonus = oben >= 63 ? 35 : 0;
   html += `<tr><td><b>Bonus</b></td><td><b>${oben}/63 ${bonus ? '+ 35' : ''}</b></td></tr>`;
   LOWER.forEach(k => { html += `<tr><td>${k}</td><td>${sc[k] != null ? sc[k] : '-'}</td></tr>`; });
+  let unten = 0;
+  LOWER.forEach(k => { if (sc[k] != null) unten += sc[k]; });
+  html += `<tr><td><b>Unterer Block</b></td><td><b>${unten}</b></td></tr>`;
   html += `<tr><td><b>GESAMT</b></td><td><b>${entry.score}</b></td></tr>`;
   html += `</table><button class="sc-close" onclick="this.closest('.sc-overlay').remove()">Schließen</button></div></div>`;
   document.body.insertAdjacentHTML('beforeend', html);
