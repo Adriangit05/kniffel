@@ -696,7 +696,7 @@ function startOnlineRound(data) {
   kept = data.kept || [false,false,false,false,false];
   rolls = data.rolls || 0;
   if (data.lastScored) lastScoredEntry = data.lastScored;
-  if (round > 13) { showEnd(); if (fbListener) { fbListener(); fbListener = null; } document.getElementById('backToEnd').style.display = ''; return; }
+  if (round > 13) { showEnd(); document.getElementById('backToEnd').style.display = ''; return; }
   showScreen('game');
   renderAll();
   const isMyTurn = currentPlayer === myPlayerId;
@@ -717,6 +717,7 @@ function listenGame() {
 
 function rematch() {
   if (!roomCode) return;
+  if (window._roomTimeout) { clearTimeout(window._roomTimeout); window._roomTimeout = null; }
   // Scores zurücksetzen in Firebase
   fbGet(fbRef(fbDb, `games/${roomCode}`)).then(snap => {
     if (!snap.exists()) { showMenu(); return; }
